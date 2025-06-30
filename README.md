@@ -30,6 +30,3 @@ This is our Year 1 Summer Project for NUS Orbital 2022.
 * JUnit4
 * UIAutomator
 * Espresso
-
-## Full documentation:
-[Click here](https://docs.google.com/document/d/1WX_dFkI76hi9k4K5-WabSSuyvXoC2vov4bpuTi3PVN0/edit?usp=sharing)
