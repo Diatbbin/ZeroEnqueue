@@ -15,14 +15,18 @@ class FirebaseService: FirebaseMessagingService() {
     override fun onMessageReceived(p0: RemoteMessage) {
         super.onMessageReceived(p0)
         val dataRecv = p0.data
+        
+        // Handle data payload notifications
         if (dataRecv.isNotEmpty()) {
-            Common.showNotification(this, Random().nextInt(),
-                dataRecv[Common.NOTI_TITLE]!!,
-                dataRecv[Common.NOTI_CONTENT]!!,
-                null)
+            val title = dataRecv[Common.NOTI_TITLE] ?: "New Notification"
+            val content = dataRecv[Common.NOTI_CONTENT] ?: "You have a new notification"
+            Common.showNotification(this, Random().nextInt(), title, content, null)
         }
-        else {
-            Toast.makeText(this, "data payload is empty", Toast.LENGTH_SHORT).show()
+        // Handle notification payload (when app is in foreground)
+        else if (p0.notification != null) {
+            val title = p0.notification!!.title ?: "New Notification"
+            val content = p0.notification!!.body ?: "You have a new notification"
+            Common.showNotification(this, Random().nextInt(), title, content, null)
         }
     }
 }

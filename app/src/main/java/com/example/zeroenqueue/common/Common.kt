@@ -28,6 +28,7 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 import java.math.RoundingMode
 import java.text.DecimalFormat
@@ -131,18 +132,29 @@ object Common {
     }
 
     fun updateToken(context: Context, token: String) {
-        FirebaseDatabase.getInstance()
-            .getReference(TOKEN_REF)
-            .child(currentUser!!.uid!!)
-            .setValue(Token(currentUser!!.phone!!, token))
-            .addOnFailureListener {e -> Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()}
+        if (currentUser?.uid != null && currentUser?.phone != null) {
+            FirebaseDatabase.getInstance()
+                .getReference(TOKEN_REF)
+                .child(currentUser!!.uid!!)
+                .setValue(Token(currentUser!!.phone!!, token))
+                .addOnSuccessListener {
+                    Log.d(TAG, "Token updated successfully")
+                }
+                .addOnFailureListener { e -> 
+                    Log.e(TAG, "Failed to update token: ${e.message}")
+                    Toast.makeText(context, "Failed to update notification token", Toast.LENGTH_SHORT).show()
+                }
+        } else {
+            Log.e(TAG, "Cannot update token: user is null or missing required fields")
+        }
     }
 
 
     fun showNotification(context: Context, id:Int, title: String, content: String, intent: Intent?) {
         var pendingIntent : PendingIntent ?= null
         if(intent != null)
-            pendingIntent = PendingIntent.getActivity(context, id, intent, PendingIntent.FLAG_UPDATE_CURRENT)
+            pendingIntent = PendingIntent.getActivity(context, id, intent, 
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val NOTIFICATION_CHANNEL_ID = "com.example.zeroenqueue"
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -176,12 +188,25 @@ object Common {
 
     fun sendNotification(context: Context, notification: PushNotification) = CoroutineScope(Dispatchers.IO).launch {
         try {
+            Log.d(TAG, "Sending notification to: ${notification.to}")
             val response = RetrofitInstance.api.postNotification(notification)
-            if (response.isSuccessful)
-                Toast.makeText(context, "Order was sent successfully", Toast.LENGTH_SHORT).show()
+            if (response.isSuccessful) {
+                Log.d(TAG, "Notification sent successfully")
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Order was sent successfully", Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                Log.e(TAG, "Failed to send notification: ${response.code()} - ${response.message()}")
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Failed to send notification", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
         catch(e: Exception) {
-            Log.e(TAG, e.toString())
+            Log.e(TAG, "Exception sending notification: ${e.message}", e)
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "Network error sending notification", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
